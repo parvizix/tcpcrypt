@@ -341,6 +341,7 @@ Return Value:
 {
     PIO_STACK_LOCATION  irpStack;
     NTSTATUS            status = STATUS_SUCCESS;
+    ULONG               ioctlCode;
 
     UNREFERENCED_PARAMETER(DeviceObject);
     
@@ -360,10 +361,35 @@ Return Value:
             break;        
             
         case IRP_MJ_DEVICE_CONTROL:
-            //
-            // Add code here to handle ioctl commands sent to passthru.
-            //
-            break;        
+            ioctlCode = irpStack->Parameters.DeviceIoControl.IoControlCode;
+
+            switch (ioctlCode)
+            {
+                case IOCTL_NDISPROT_BIND_WAIT:
+                case IOCTL_NDISPROT_QUERY_BINDING:
+                case IOCTL_NDISPROT_OPEN_DEVICE:
+                case IOCTL_NDISPROT_QUERY_OID_VALUE:
+                case IOCTL_NDISPROT_SET_OID_VALUE:
+                case IOCTL_NDISPROT_INDICATE_STATUS:
+                    return NdisProtIoControl(DeviceObject, Irp);
+
+                case IOCTL_PTUSERIO_ENUMERATE:
+                case IOCTL_PTUSERIO_OPEN_ADAPTER:
+                case IOCTL_PTUSERIO_QUERY_INFORMATION:
+                case IOCTL_PTUSERIO_SET_INFORMATION:
+                case IOCTL_PTUSERIO_QUERY_IPv4_BLOCK_STATISTICS:
+                case IOCTL_PTUSERIO_RESET_IPv4_BLOCK_STATISTICS:
+                case IOCTL_PTUSERIO_SET_IPv4_BLOCK_FILTER:
+                case IOCTL_PTUSERIO_QUERY_IPv6_BLOCK_STATISTICS:
+                case IOCTL_PTUSERIO_RESET_IPv6_BLOCK_STATISTICS:
+                case IOCTL_PTUSERIO_SET_IPv6_BLOCK_FILTER:
+                    return FltDevIoControl(DeviceObject, Irp);
+
+                default:
+                    status = STATUS_NOT_SUPPORTED;
+                    break;
+            }
+            break;
         default:
             break;
     }
